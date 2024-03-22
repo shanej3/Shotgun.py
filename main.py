@@ -9,6 +9,7 @@ from random import randint, choice, random
 # todo: shootingenemy that fires straight, perhaps in a new class
 # floor = HEIGHT - 230
 # GIT TEST
+# TEST
 pygame.init()
 WIDTH = 1920
 HEIGHT = 1080
