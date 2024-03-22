@@ -8,6 +8,7 @@ from random import randint, choice, random
 # todo: (eventually), the shotgun's sprite's weird shape causes collision issues, namely with the boundaries of the window
 # todo: shootingenemy that fires straight, perhaps in a new class
 # floor = HEIGHT - 230
+# THIS HAS BEEN ADDED TO DEVELOPMENT BRANCH
 pygame.init()
 WIDTH = 1920
 HEIGHT = 1080
