@@ -21,9 +21,9 @@ background = pygame.image.load('assets/img/city_night_1.png').convert_alpha()
 #background = pygame.image.load('assets/img/weird_dungon.png').convert_alpha()
 background_surf = pygame.transform.scale(background, (WIDTH, HEIGHT))
 background_rect = background_surf.get_rect()
-ground = pygame.image.load('assets/img/city_night_ground.png').convert_alpha()
-ground_surf = pygame.transform.scale(ground, (WIDTH, HEIGHT))
-ground_rect = ground_surf.get_rect()
+ground = pygame.image.load('assets/img/ground-shane-1-wide.png')
+ground_surf = pygame.transform.scale_by(ground, 4)
+ground_rect = ground_surf.get_rect(midbottom=(WIDTH // 2, HEIGHT))
 player_bullet_img = pygame.image.load('assets/img/bullet2.png').convert_alpha()
 enemy_bullet_img = pygame.image.load('assets/img/enemy_bullet_circle1.png').convert_alpha()
 shotgun_img = pygame.image.load('assets/img/shotgun_right.png').convert_alpha()
@@ -153,7 +153,9 @@ class Player(pygame.sprite.Sprite):
             self.can_shoot = False
     def jump(self):
         if self.can_jump and self.rect.y > 25:
-                if self.rect.y == (HEIGHT - ground_surf.get_height()) or self.jump_counter > 0:
+                #if self.rect.y == (HEIGHT - ground_surf.get_height()) or self.jump_counter > 0:
+                if pygame.Rect.colliderect(self.rect, ground_rect) or self.jump_counter > 0:
+                    print('JUMP')
                     self.gravity = -self.jump_height
                     self.last_jump = pygame.time.get_ticks()
                     self.can_jump = False
@@ -541,7 +543,8 @@ while running:
         # Main game
         # Render
         screen.blit(background_surf, (0, 0))
-        screen.blit(ground_surf, (0, 0))
+        screen.blit(ground_surf, ground_rect)
+        #screen.blit(ground_surf)
         score_text = main_font.render("SCORE : " + str(score), True, (220, 255, 220))
         screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, 50))
 
