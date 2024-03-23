@@ -6,11 +6,9 @@ from random import randint, choice, random
 # todo: new enemies
 # todo: fix inconsistent/not precise values (eventually), such as height of floor calculations for jumping
 # todo: (eventually), the shotgun's sprite's weird shape causes collision issues, namely with the boundaries of the window
-# floor = HEIGHT - 230
-# THIS HAS BEEN ADDED TO DEVELOPMENT BRANCH LALALALALALALALALALALALALALA
 pygame.init()
-WIDTH = 1920
-HEIGHT = 1080
+WIDTH = 1280
+HEIGHT = 720
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 running = True
@@ -29,7 +27,6 @@ enemy_bullet_img = pygame.image.load('assets/img/enemy_bullet_circle1.png').conv
 shotgun_img = pygame.image.load('assets/img/shotgun_right.png').convert_alpha()
 shotgun_img_yellow = pygame.image.load('assets/img/shotgun_yellow.png').convert_alpha()
 shotgun_img_red = pygame.image.load('assets/img/shotgun_red.png').convert_alpha()
-#mob_1_img = pygame.image.load('assets/img/Cacodemon_sprite.png').convert_alpha()
 mob_1_img = pygame.image.load('assets/img/drone_ball.png').convert_alpha()
 tank_guy_img1 = pygame.image.load('assets/img/tank_guy_red1.png').convert_alpha()
 tank_guy_img1 = pygame.transform.scale_by(tank_guy_img1, 4)
@@ -50,6 +47,7 @@ tank_guy_angle_img4 = pygame.transform.scale_by(tank_guy_angle_img4, 4)
 heart_red = pygame.image.load('assets/img/heart1.png').convert_alpha()
 heart_red_empty = pygame.image.load('assets/img/heart1_fade.png').convert_alpha()
 #bullet_img = pygame.image.load('assets/img/bullet1_enemy.png').convert_alpha()
+
 # timers
 mouse_timer = pygame.USEREVENT + 1
 pygame.time.set_timer(mouse_timer, 10)
@@ -58,7 +56,7 @@ spawn_timer_flying = pygame.USEREVENT + 2
 pygame.time.set_timer(spawn_timer_flying, randint(400, 500))
 
 spawn_timer_shooting = pygame.USEREVENT + 3
-pygame.time.set_timer(spawn_timer_shooting, randint(1000, 10000))
+pygame.time.set_timer(spawn_timer_shooting, randint(2000, 10000))
 #pygame.time.set_timer(spawn_timer_shooting, 500)
 
 blink_timer = pygame.USEREVENT + 4
@@ -127,12 +125,14 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_d]:
             self.player_speed = min(self.player_max_speed, self.player_speed + self.player_acceleration)
         self.rect.x += self.player_speed
+        # ^ moves player
         if keys[pygame.K_s]:
             # goes down faster if holding S
             self.gravity += 1.5
         if keys[pygame.K_w] and self.jump_counter == 0:
-            # todo: currently only works if you completely run out of jumps, might be fine?
-            self.gravity -= 0.9
+            # todo: maybe implement W key slowing down your fall
+            #self.gravity -= 0.9
+            pass
             # goes down slightly slower if holding W
         if keys[pygame.K_SPACE]:
             self.jump()
@@ -163,7 +163,6 @@ class Player(pygame.sprite.Sprite):
         if self.can_jump and self.rect.y > 25:
                 #if self.rect.y == (HEIGHT - ground_surf.get_height()) or self.jump_counter > 0:
                 if pygame.Rect.colliderect(self.rect, ground_rect) or self.jump_counter > 0:
-                    print('JUMP')
                     self.gravity = -self.jump_height
                     self.last_jump = pygame.time.get_ticks()
                     self.can_jump = False
@@ -237,7 +236,6 @@ class Bullet(pygame.sprite.Sprite):
         # destroy bullet if out of bounds
         if out_of_bounds(self, 1):
             self.kill()
-            print('KILL')
     def destroy(self):
         self.kill()
 
@@ -319,7 +317,6 @@ class ShootingEnemy(pygame.sprite.Sprite):
             self.rect = self.image.get_rect(midbottom=(-100, HEIGHT - (HEIGHT / 18)))
 
 
-
     def destroy(self):
         global score
         if pygame.sprite.spritecollide(self, bullet, True):
@@ -328,8 +325,8 @@ class ShootingEnemy(pygame.sprite.Sprite):
             score += 2
             multi_shot()
             player.sprite.refresh_jump()
-        if self.rect.x <= -500 or self.rect.x >= (WIDTH + 500):
-            # destroys if off-screen
+        if out_of_bounds(self, 2):
+            # destroys if off-screen (500 pixels off-screen)
             self.kill()
         if pygame.sprite.collide_rect(self, player.sprite):
             player_take_damage()
@@ -408,7 +405,7 @@ class ShootingEnemyAngled(pygame.sprite.Sprite):
             score += 2
             multi_shot()
             player.sprite.refresh_jump()
-        if self.rect.x <= -500 or self.rect.x >= (WIDTH + 500):
+        if out_of_bounds(self, 2):
             # destroys if off-screen
             self.kill()
         if pygame.sprite.collide_rect(self, player.sprite):
@@ -463,7 +460,6 @@ class EnemyBullet(pygame.sprite.Sprite):
     def update(self):
         # flight
         self.fly()
-
         self.collision()
     def collision(self):
         # destroy bullet if out of bounds
@@ -472,7 +468,6 @@ class EnemyBullet(pygame.sprite.Sprite):
         # destroy bullet if hits player + player takes damage
         if pygame.sprite.collide_rect(self, player.sprite):
             player_take_damage()
-            pass
     def fly(self):
         if self.angled == 0:
             # straight shooting
@@ -523,6 +518,7 @@ class Heart(pygame.sprite.Sprite):
                 self.image = self.heart_library[1]
             self.rect = self.image.get_rect(center=((WIDTH // 2) + 50, 125))
 
+
 # INSTANTIATE STUFF
 # player
 player = pygame.sprite.GroupSingle(Player())
@@ -534,7 +530,6 @@ flying_enemies = pygame.sprite.Group()
 heart = pygame.sprite.Group()
 shooting_enemies = pygame.sprite.Group()
 shooting_enemies_angled = pygame.sprite.Group()
-#all_dangers = pygame.sprite.Group()
 # bullet fired by enemies
 enemy_bullet = pygame.sprite.Group()
 
@@ -560,10 +555,10 @@ def player_take_damage():
 def multi_shot():
     global score
     # this is to be called whenever a collision has occurred
+    # todo: more interesting rewards for multi-shots
     if player.sprite.can_shoot is False:
         player.sprite.multi_shot_counter += 1
         if player.sprite.multi_shot_counter > 1:
-            #player.sprite.refresh_jump()
             score += 2
         if player.sprite.multi_shot_counter == 3:
             score += 5
@@ -631,9 +626,6 @@ while running:
                     # 1 or 2 determines side of spawning
                 if shooter_type == 2:
                     shooting_enemies_angled.add(ShootingEnemyAngled(randint(1, 2)))
-
-                # the number passed here is the divisor on how much to change the y-value of the bullet every frame
-                # it is definitely a little scuffed
         else:
             keys = pygame.key.get_pressed()
             if keys[pygame.K_ESCAPE]:
@@ -647,7 +639,6 @@ while running:
         # Render
         screen.blit(background_surf, (0, 0))
         screen.blit(ground_surf, ground_rect)
-        #screen.blit(ground_surf)
         score_text = main_font.render("SCORE : " + str(score), True, (220, 255, 220))
         screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, 50))
 
@@ -666,7 +657,6 @@ while running:
         shooting_enemies_angled.draw(screen)
         shooting_enemies_angled.update()
 
-        #enemy_bullet.add(EnemyBullet(1))
         enemy_bullet.draw(screen)
         enemy_bullet.update()
 
