@@ -40,6 +40,14 @@ tank_guy_img3 = pygame.image.load('assets/img/tank_guy_red3.png').convert_alpha(
 tank_guy_img3 = pygame.transform.scale_by(tank_guy_img3, 4)
 tank_guy_img4 = pygame.image.load('assets/img/tank_guy_red4.png').convert_alpha()
 tank_guy_img4 = pygame.transform.scale_by(tank_guy_img4, 4)
+tank_guy_angle_img1 = pygame.image.load('assets/img/tank_guy_angle1.png').convert_alpha()
+tank_guy_angle_img1 = pygame.transform.scale_by(tank_guy_img1, 4)
+tank_guy_angle_img2 = pygame.image.load('assets/img/tank_guy_angle2.png').convert_alpha()
+tank_guy_angle_img2 = pygame.transform.scale_by(tank_guy_img2, 4)
+tank_guy_angle_img3 = pygame.image.load('assets/img/tank_guy_angle3.png').convert_alpha()
+tank_guy_angle_img3 = pygame.transform.scale_by(tank_guy_img3, 4)
+tank_guy_angle_img4 = pygame.image.load('assets/img/tank_guy_angle4.png').convert_alpha()
+tank_guy_angle_img4 = pygame.transform.scale_by(tank_guy_img4, 4)
 heart_red = pygame.image.load('assets/img/heart1.png').convert_alpha()
 heart_red_empty = pygame.image.load('assets/img/heart1_fade.png').convert_alpha()
 #bullet_img = pygame.image.load('assets/img/bullet1_enemy.png').convert_alpha()
@@ -286,8 +294,7 @@ class FlyingEnemy(pygame.sprite.Sprite):
         self.destroy()
 
 class ShootingEnemy(pygame.sprite.Sprite):
-    def __init__(self, y_divisor, side):
-        # todo: make the left-side spawning ones function
+    def __init__(self, side):
         super().__init__()
         self.library = [tank_guy_img1, tank_guy_img2, tank_guy_img3, tank_guy_img4]  # frames
         self.library_flipped = [pygame.transform.flip(tank_guy_img1, flip_x=True, flip_y=False),
@@ -302,7 +309,6 @@ class ShootingEnemy(pygame.sprite.Sprite):
         self.last_shot = 0
         self.shot_delay = 250
         self.alive = True
-        self.divisor = y_divisor
         # this divisor, used later, is for calculating self.rect.y movement
         self.side = side
         if self.side == 1:
@@ -334,10 +340,10 @@ class ShootingEnemy(pygame.sprite.Sprite):
         if self.can_shoot:
             if self.side == 1:
                 # right side
-                enemy_bullet.add(EnemyBullet(self.rect.midleft, self.divisor, self.side))
+                enemy_bullet.add(EnemyBullet(self.rect.midleft, self.side))
             if self.side == 2:
                 # left side
-                enemy_bullet.add(EnemyBullet(self.rect.midright, self.divisor, self.side))
+                enemy_bullet.add(EnemyBullet(self.rect.midright, self.side))
             # this self.rect.whatever is passed into EnemyBullet as the "position" argument
             self.last_shot = pygame.time.get_ticks()
             self.can_shoot = False
@@ -366,28 +372,23 @@ class ShootingEnemy(pygame.sprite.Sprite):
             # this is for delay between shots
             self.can_shoot = True
 class EnemyBullet(pygame.sprite.Sprite):
-    def __init__(self, position, bullet_divisor, side):
+    def __init__(self, position, side):
         super().__init__()
-        #self.image = pygame.transform.scale_by(enemy_bullet_img, 0.5)
         self.image = enemy_bullet_img
-        self.rect = self.image.get_rect(center=(position))
+        self.rect = self.image.get_rect(center=position)
         self.projectile_speed = 10
-        self.divisor = bullet_divisor
         self.side = side
-        self.shooter_type = randint(1,2)
         # 1 will be straight shooter, 2 will be angled
 
     def update(self):
         # flight
-        # divisor of < 5 is instead turned into flat shooting, kinda strange implementation but
         if self.side == 1:
             # right side
             self.rect.x -= self.projectile_speed
-            self.rect.y -= self.projectile_speed // self.divisor
+            self.rect.y -= 0
         if self.side == 2:
             # left side
             self.rect.x += self.projectile_speed
-            self.rect.y -= self.projectile_speed // self.divisor
         self.collision()
     def collision(self):
         # destroy bullet if out of bounds
@@ -527,9 +528,9 @@ while running:
                 flying_enemies.add(FlyingEnemy(randint(1, 3)))
                 pass
             if event.type == spawn_timer_shooting:
-                divisor = randint(5, 10)
+                #divisor = randint(5, 10)
                 #spawn_side = randint(1, 2)
-                shooting_enemies.add(ShootingEnemy(divisor, randint(1, 2)))
+                shooting_enemies.add(ShootingEnemy(randint(1, 2)))
                 # the number passed here is the divisor on how much to change the y-value of the bullet every frame
                 # it is definitely a little scuffed
         else:
