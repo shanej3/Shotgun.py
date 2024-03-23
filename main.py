@@ -6,7 +6,6 @@ from random import randint, choice, random
 # todo: new enemies
 # todo: fix inconsistent/not precise values (eventually), such as height of floor calculations for jumping
 # todo: (eventually), the shotgun's sprite's weird shape causes collision issues, namely with the boundaries of the window
-# todo: shootingenemy that fires straight, perhaps in a new class
 # floor = HEIGHT - 230
 # THIS HAS BEEN ADDED TO DEVELOPMENT BRANCH LALALALALALALALALALALALALALA
 pygame.init()
@@ -59,7 +58,7 @@ spawn_timer_flying = pygame.USEREVENT + 2
 pygame.time.set_timer(spawn_timer_flying, randint(400, 500))
 
 spawn_timer_shooting = pygame.USEREVENT + 3
-pygame.time.set_timer(spawn_timer_shooting, randint(1000, 8000))
+pygame.time.set_timer(spawn_timer_shooting, randint(1000, 10000))
 #pygame.time.set_timer(spawn_timer_shooting, 500)
 
 blink_timer = pygame.USEREVENT + 4
@@ -420,10 +419,10 @@ class ShootingEnemyAngled(pygame.sprite.Sprite):
         if self.can_shoot:
             if self.side == 1:
                 # right side
-                enemy_bullet.add(EnemyBullet(self.rect.midleft,1, self.side))
+                enemy_bullet.add(EnemyBullet(self.rect.center,1, self.side))
             if self.side == 2:
                 # left side
-                enemy_bullet.add(EnemyBullet(self.rect.midright,1, self.side))
+                enemy_bullet.add(EnemyBullet(self.rect.center,1, self.side))
             # this self.rect.whatever is passed into EnemyBullet as the "position" argument
             self.last_shot = pygame.time.get_ticks()
             self.can_shoot = False
@@ -625,11 +624,11 @@ while running:
                 flying_enemies.add(FlyingEnemy(randint(1, 3)))
                 pass
             if event.type == spawn_timer_shooting:
-                #divisor = randint(5, 10)
-                #spawn_side = randint(1, 2)
                 shooter_type = randint(1,2)
+                # 1 = straight shooter, 2 is angled
                 if shooter_type == 1:
                     shooting_enemies.add(ShootingEnemy(randint(1, 2)))
+                    # 1 or 2 determines side of spawning
                 if shooter_type == 2:
                     shooting_enemies_angled.add(ShootingEnemyAngled(randint(1, 2)))
 
