@@ -41,13 +41,13 @@ tank_guy_img3 = pygame.transform.scale_by(tank_guy_img3, 4)
 tank_guy_img4 = pygame.image.load('assets/img/tank_guy_red4.png').convert_alpha()
 tank_guy_img4 = pygame.transform.scale_by(tank_guy_img4, 4)
 tank_guy_angle_img1 = pygame.image.load('assets/img/tank_guy_angle1.png').convert_alpha()
-tank_guy_angle_img1 = pygame.transform.scale_by(tank_guy_img1, 4)
+tank_guy_angle_img1 = pygame.transform.scale_by(tank_guy_angle_img1, 4)
 tank_guy_angle_img2 = pygame.image.load('assets/img/tank_guy_angle2.png').convert_alpha()
-tank_guy_angle_img2 = pygame.transform.scale_by(tank_guy_img2, 4)
+tank_guy_angle_img2 = pygame.transform.scale_by(tank_guy_angle_img2, 4)
 tank_guy_angle_img3 = pygame.image.load('assets/img/tank_guy_angle3.png').convert_alpha()
-tank_guy_angle_img3 = pygame.transform.scale_by(tank_guy_img3, 4)
+tank_guy_angle_img3 = pygame.transform.scale_by(tank_guy_angle_img3, 4)
 tank_guy_angle_img4 = pygame.image.load('assets/img/tank_guy_angle4.png').convert_alpha()
-tank_guy_angle_img4 = pygame.transform.scale_by(tank_guy_img4, 4)
+tank_guy_angle_img4 = pygame.transform.scale_by(tank_guy_angle_img4, 4)
 heart_red = pygame.image.load('assets/img/heart1.png').convert_alpha()
 heart_red_empty = pygame.image.load('assets/img/heart1_fade.png').convert_alpha()
 #bullet_img = pygame.image.load('assets/img/bullet1_enemy.png').convert_alpha()
@@ -60,7 +60,7 @@ pygame.time.set_timer(spawn_timer_flying, randint(400, 500))
 
 spawn_timer_shooting = pygame.USEREVENT + 3
 pygame.time.set_timer(spawn_timer_shooting, randint(1000, 8000))
-#pygame.time.set_timer(spawn_timer_shooting, 1000)
+#pygame.time.set_timer(spawn_timer_shooting, 500)
 
 blink_timer = pygame.USEREVENT + 4
 pygame.time.set_timer(blink_timer, 100)
@@ -307,7 +307,7 @@ class ShootingEnemy(pygame.sprite.Sprite):
         # main sprite group, stores bullets ^
         self.can_shoot = True
         self.last_shot = 0
-        self.shot_delay = 250
+        self.shot_delay = 175
         self.alive = True
         # this divisor, used later, is for calculating self.rect.y movement
         self.side = side
@@ -340,10 +340,90 @@ class ShootingEnemy(pygame.sprite.Sprite):
         if self.can_shoot:
             if self.side == 1:
                 # right side
-                enemy_bullet.add(EnemyBullet(self.rect.midleft, self.side))
+                enemy_bullet.add(EnemyBullet(self.rect.midleft, 0, self.side))
             if self.side == 2:
                 # left side
-                enemy_bullet.add(EnemyBullet(self.rect.midright, self.side))
+                enemy_bullet.add(EnemyBullet(self.rect.midright, 0, self.side))
+            # this self.rect.whatever is passed into EnemyBullet as the "position" argument
+            self.last_shot = pygame.time.get_ticks()
+            self.can_shoot = False
+
+    def move(self):
+        if self.side == 1:
+            self.rect.x -= self.speed
+        if self.side == 2:
+            self.rect.x += self.speed
+    def animation(self):
+        # cycles through each "frame" in self.library
+        self.current_frame += 0.2 # speed
+        if self.current_frame >= len(self.library):
+            self.current_frame = 0
+        if self.side == 1:
+            self.image = self.library[int(self.current_frame)]
+        if self.side == 2:
+            self.image = self.library_flipped[int(self.current_frame)]
+
+    def update(self):
+        self.move()
+        self.destroy()
+        self.shoot()
+        self.animation()
+        if not self.can_shoot and current_time - self.last_shot >= self.shot_delay:
+            # this is for delay between shots
+            self.can_shoot = True
+
+
+class ShootingEnemyAngled(pygame.sprite.Sprite):
+    def __init__(self, side):
+        super().__init__()
+        self.library = [tank_guy_angle_img1, tank_guy_angle_img2, tank_guy_angle_img3, tank_guy_angle_img4]  # frames
+        self.library_flipped = [pygame.transform.flip(tank_guy_angle_img1, flip_x=True, flip_y=False),
+                                pygame.transform.flip(tank_guy_angle_img2, flip_x=True, flip_y=False),
+                                pygame.transform.flip(tank_guy_angle_img3, flip_x=True, flip_y=False),
+                                pygame.transform.flip(tank_guy_angle_img4, flip_x=True, flip_y=False)]
+        self.current_frame = 0  # index of self.library
+        self.image = self.library[self.current_frame]
+        self.speed = 5
+        # main sprite group, stores bullets ^
+        self.can_shoot = True
+        self.last_shot = 0
+        self.shot_delay = 175
+        self.alive = True
+        # this divisor, used later, is for calculating self.rect.y movement
+        self.side = side
+        if self.side == 1:
+            # right side of screen
+            self.rect = self.image.get_rect(midbottom=(WIDTH + 100, HEIGHT - (HEIGHT / 18)))
+        if self.side == 2:
+            # left side of screen
+            self.image = self.library_flipped[self.current_frame]
+            self.rect = self.image.get_rect(midbottom=(-100, HEIGHT - (HEIGHT / 18)))
+
+
+
+    def destroy(self):
+        global score
+        if pygame.sprite.spritecollide(self, bullet, True):
+            # this is when PLAYER bullet collides with enemy
+            self.kill()
+            score += 2
+            multi_shot()
+            player.sprite.refresh_jump()
+        if self.rect.x <= -500 or self.rect.x >= (WIDTH + 500):
+            # destroys if off-screen
+            self.kill()
+        if pygame.sprite.collide_rect(self, player.sprite):
+            player_take_damage()
+            pass
+
+    def shoot(self):  # call this with a type
+        if self.can_shoot:
+            if self.side == 1:
+                # right side
+                enemy_bullet.add(EnemyBullet(self.rect.midleft,1, self.side))
+            if self.side == 2:
+                # left side
+                enemy_bullet.add(EnemyBullet(self.rect.midright,1, self.side))
             # this self.rect.whatever is passed into EnemyBullet as the "position" argument
             self.last_shot = pygame.time.get_ticks()
             self.can_shoot = False
@@ -372,23 +452,19 @@ class ShootingEnemy(pygame.sprite.Sprite):
             # this is for delay between shots
             self.can_shoot = True
 class EnemyBullet(pygame.sprite.Sprite):
-    def __init__(self, position, side):
+    def __init__(self, position, shot_angle, side):
         super().__init__()
         self.image = enemy_bullet_img
         self.rect = self.image.get_rect(center=position)
         self.projectile_speed = 10
         self.side = side
+        self.angled = shot_angle
         # 1 will be straight shooter, 2 will be angled
 
     def update(self):
         # flight
-        if self.side == 1:
-            # right side
-            self.rect.x -= self.projectile_speed
-            self.rect.y -= 0
-        if self.side == 2:
-            # left side
-            self.rect.x += self.projectile_speed
+        self.fly()
+
         self.collision()
     def collision(self):
         # destroy bullet if out of bounds
@@ -398,6 +474,26 @@ class EnemyBullet(pygame.sprite.Sprite):
         if pygame.sprite.collide_rect(self, player.sprite):
             player_take_damage()
             pass
+    def fly(self):
+        if self.angled == 0:
+            # straight shooting
+            if self.side == 1:
+                # right side
+                self.rect.x -= self.projectile_speed
+                self.rect.y -= 0
+            if self.side == 2:
+                # left side
+                self.rect.x += self.projectile_speed
+                self.rect.y -= 0
+        if self.angled == 1:
+            if self.side == 1:
+                # right side
+                self.rect.x -= self.projectile_speed
+                self.rect.y -= 3
+            if self.side == 2:
+                # left side
+                self.rect.x += self.projectile_speed
+                self.rect.y -= 3
 class Obstacle(pygame.sprite.Sprite):
     def __init__(self, ob_type):
         super().__init__()
@@ -438,6 +534,7 @@ flying_enemies = pygame.sprite.Group()
 # heart
 heart = pygame.sprite.Group()
 shooting_enemies = pygame.sprite.Group()
+shooting_enemies_angled = pygame.sprite.Group()
 #all_dangers = pygame.sprite.Group()
 # bullet fired by enemies
 enemy_bullet = pygame.sprite.Group()
@@ -530,7 +627,12 @@ while running:
             if event.type == spawn_timer_shooting:
                 #divisor = randint(5, 10)
                 #spawn_side = randint(1, 2)
-                shooting_enemies.add(ShootingEnemy(randint(1, 2)))
+                shooter_type = randint(1,2)
+                if shooter_type == 1:
+                    shooting_enemies.add(ShootingEnemy(randint(1, 2)))
+                if shooter_type == 2:
+                    shooting_enemies_angled.add(ShootingEnemyAngled(randint(1, 2)))
+
                 # the number passed here is the divisor on how much to change the y-value of the bullet every frame
                 # it is definitely a little scuffed
         else:
@@ -561,6 +663,9 @@ while running:
 
         shooting_enemies.draw(screen)
         shooting_enemies.update()
+
+        shooting_enemies_angled.draw(screen)
+        shooting_enemies_angled.update()
 
         #enemy_bullet.add(EnemyBullet(1))
         enemy_bullet.draw(screen)
