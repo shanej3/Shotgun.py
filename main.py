@@ -6,9 +6,10 @@ from random import randint, choice, random
 # todo: new enemies
 # todo: fix inconsistent/not precise values (eventually), such as height of floor calculations for jumping
 # todo: (eventually), the shotgun's sprite's weird shape causes collision issues, namely with the boundaries of the window
+# todo: powerups: ideas in ignore.txt
 pygame.init()
-WIDTH = 1280
-HEIGHT = 720
+WIDTH = 1920
+HEIGHT = 1080
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 running = True
