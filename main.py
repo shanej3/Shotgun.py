@@ -51,18 +51,22 @@ rapid_powerup_img = pygame.image.load('assets/img/rapidfire_notext.png')
 rapid_powerup_img = pygame.transform.scale_by(rapid_powerup_img, 2.5)
 #bullet_img = pygame.image.load('assets/img/bullet1_enemy.png').convert_alpha()
 
-# timersa
+# timers
+mouse_timer = pygame.USEREVENT + 1
 pygame.time.set_timer(mouse_timer, 10)
 
 # Remember: These variables are also in reset()
 spawn_timer_flying = pygame.USEREVENT + 2
-pygame.time.set_timer(spawn_timer_flying, randint(250, 500))
+pygame.time.set_timer(spawn_timer_flying, randint(400, 500))
 
 spawn_timer_shooting = pygame.USEREVENT + 3
 pygame.time.set_timer(spawn_timer_shooting, randint(2000, 10000))
 #pygame.time.set_timer(spawn_timer_shooting, 500)
 
-blink_timer = pygame.USEREVENT + 4
+spawn_timer_powerups = pygame.USEREVENT + 4
+pygame.time.set_timer(spawn_timer_powerups, 30000)
+
+blink_timer = pygame.USEREVENT + 5
 pygame.time.set_timer(blink_timer, 100)
 
 # GUI
@@ -619,7 +623,7 @@ power_ups = pygame.sprite.Group()
 for i in range(1, 4):
     heart.add(Heart(i))
 
-power_ups.add(PowerUp('rapidfire'))
+#power_ups.add(PowerUp('rapidfire'))
 
 def player_take_damage():
     global game_active
@@ -729,6 +733,9 @@ while running:
                 if shooter_type == 2:
                     shooting_enemies_angled.add(ShootingEnemyAngled(choice(shooting_enemy_types)))
                     pass
+            if event.type == spawn_timer_powerups:
+                powerup_type_list = ['rapidfire']
+                power_ups.add(PowerUp(choice(powerup_type_list)))
         else:
             keys = pygame.key.get_pressed()
             if keys[pygame.K_ESCAPE]:
