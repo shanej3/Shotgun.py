@@ -51,13 +51,12 @@ rapid_powerup_img = pygame.image.load('assets/img/rapidfire_notext.png')
 rapid_powerup_img = pygame.transform.scale_by(rapid_powerup_img, 2.5)
 #bullet_img = pygame.image.load('assets/img/bullet1_enemy.png').convert_alpha()
 
-# timers
-mouse_timer = pygame.USEREVENT + 1
+# timersa
 pygame.time.set_timer(mouse_timer, 10)
 
 # Remember: These variables are also in reset()
 spawn_timer_flying = pygame.USEREVENT + 2
-pygame.time.set_timer(spawn_timer_flying, randint(400, 500))
+pygame.time.set_timer(spawn_timer_flying, randint(250, 500))
 
 spawn_timer_shooting = pygame.USEREVENT + 3
 pygame.time.set_timer(spawn_timer_shooting, randint(2000, 10000))
@@ -210,12 +209,14 @@ class Player(pygame.sprite.Sprite):
             self.jump_counter = 1
 
     def powerup(self, powerup_type):
+        global score
         # runs ONCE when powerup is picked up
         self.powerup_pickup_time = pygame.time.get_ticks()
         self.powerup_type = powerup_type
         self.has_powerup = True
         pygame.time.set_timer(spawn_timer_flying, 100)
-        pygame.time.set_timer(spawn_timer_shooting, 1000)
+        #pygame.time.set_timer(spawn_timer_shooting, 1000)
+        score += 20
 
 
     def powerup_active(self):
@@ -234,13 +235,13 @@ class Player(pygame.sprite.Sprite):
         pygame.time.set_timer(spawn_timer_shooting, randint(2000, 10000))
 
     def update(self):
-        self.checks()
         self.player_input()
         self.apply_gravity()
         self.frames()
         out_of_bounds(self, 3)
         if self.has_powerup is True:
             self.powerup_active()
+        self.checks()
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, bullet_type):
@@ -718,13 +719,15 @@ while running:
                 pass
             if event.type == spawn_timer_shooting:
                 shooter_type = randint(1,2)
+                shooting_enemy_types = (1, 1, 1, 2)
+                # ^ this is for the random.choice method
                 # 1 = straight shooter, 2 is angled
                 if shooter_type == 1:
                     shooting_enemies.add(ShootingEnemy(randint(1, 2)))
                     pass
                     # 1 or 2 determines side of spawning
                 if shooter_type == 2:
-                    shooting_enemies_angled.add(ShootingEnemyAngled(randint(1, 2)))
+                    shooting_enemies_angled.add(ShootingEnemyAngled(choice(shooting_enemy_types)))
                     pass
         else:
             keys = pygame.key.get_pressed()
