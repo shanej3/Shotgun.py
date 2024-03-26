@@ -55,6 +55,7 @@ rapid_powerup_img = pygame.transform.scale_by(rapid_powerup_img, 2.5)
 mouse_timer = pygame.USEREVENT + 1
 pygame.time.set_timer(mouse_timer, 10)
 
+# Remember: These variables are also in reset()
 spawn_timer_flying = pygame.USEREVENT + 2
 pygame.time.set_timer(spawn_timer_flying, randint(400, 500))
 
@@ -188,7 +189,7 @@ class Player(pygame.sprite.Sprite):
         if pygame.Rect.colliderect(self.rect, ground_rect):
             # landing refreshes jumps
             self.jump_counter = 2
-        if self.has_powerup and current_time - self.powerup_pickup_time >= self.powerup_duration:
+        if self.has_powerup and current_time - self.powerup_pickup_time > self.powerup_duration:
             self.has_powerup = False
             self.reset()
             # removes powerup after set duration (powerup_duration)
@@ -209,11 +210,16 @@ class Player(pygame.sprite.Sprite):
             self.jump_counter = 1
 
     def powerup(self, powerup_type):
+        # runs ONCE when powerup is picked up
+        self.powerup_pickup_time = pygame.time.get_ticks()
         self.powerup_type = powerup_type
         self.has_powerup = True
-        self.powerup_pickup_time = pygame.time.get_ticks()
+        pygame.time.set_timer(spawn_timer_flying, 100)
+        pygame.time.set_timer(spawn_timer_shooting, 1000)
+
 
     def powerup_active(self):
+        # runs when powerup active, ends AUTOMATICALLY after powerup_duration
         if self.powerup_type == 'rapidfire':
             self.current_frame = 1
             self.last_frame = 1
@@ -224,6 +230,8 @@ class Player(pygame.sprite.Sprite):
         self.current_frame = 0
         self.last_frame = 0
         self.shot_delay = 300
+        pygame.time.set_timer(spawn_timer_flying, randint(400, 500))
+        pygame.time.set_timer(spawn_timer_shooting, randint(2000, 10000))
 
     def update(self):
         self.checks()
