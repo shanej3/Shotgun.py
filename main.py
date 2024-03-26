@@ -47,6 +47,8 @@ tank_guy_angle_img4 = pygame.image.load('assets/img/tank_guy_angle4.png').conver
 tank_guy_angle_img4 = pygame.transform.scale_by(tank_guy_angle_img4, 4)
 heart_red = pygame.image.load('assets/img/heart1.png').convert_alpha()
 heart_red_empty = pygame.image.load('assets/img/heart1_fade.png').convert_alpha()
+rapid_powerup_img = pygame.image.load('assets/img/rapidfire_notext.png')
+rapid_powerup_img = pygame.transform.scale_by(rapid_powerup_img, 2.5)
 #bullet_img = pygame.image.load('assets/img/bullet1_enemy.png').convert_alpha()
 
 # timers
@@ -74,6 +76,7 @@ class Player(pygame.sprite.Sprite):
         # Render
         self.shotgun_library = [shotgun_img, shotgun_img_yellow, shotgun_img_red]
         self.current_frame = 0  # defaults to shotgun_img (index 0 of shotgun_library)
+        self.last_frame = 0
         self.current_shotgun_img = pygame.transform.scale_by(self.shotgun_library[self.current_frame], 3)
         self.image = self.current_shotgun_img
         self.rect = self.image.get_rect(center=(WIDTH // 2, HEIGHT // 2))
@@ -96,11 +99,17 @@ class Player(pygame.sprite.Sprite):
         self.is_invul = False
         self.i_frames = 3000
         self.now_invul = 0
+        # for powerups
+        self.has_powerup = False
+        self.powerup_pickup_time = 0
+        self.powerup_duration = 5000
+        self.powerup_type = 'rapidfire'
         # params, bullet spread is in bullet class
         self.health = 3
         self.bullet_count = 5  # 5 default, make sure this is an odd number, huge number = cool explosion lol
         self.jump_height = 25
         self.multi_shot_counter = 0
+
 
 
     def point(self):
@@ -158,11 +167,10 @@ class Player(pygame.sprite.Sprite):
                 # doubles amount of bullets
                 for i in range(1, ((self.bullet_count * 2) + 1)):
                     bullet.add(Bullet(i))
-                    self.last_shot = pygame.time.get_ticks() + 750 # longer delay
+                    self.last_shot = pygame.time.get_ticks() + 750  # longer delay
             self.can_shoot = False
     def jump(self):
         if self.can_jump and self.rect.y > 25:
-                #if self.rect.y == (HEIGHT - ground_surf.get_height()) or self.jump_counter > 0:
                 if pygame.Rect.colliderect(self.rect, ground_rect) or self.jump_counter > 0:
                     self.gravity = -self.jump_height
                     self.last_jump = pygame.time.get_ticks()
@@ -170,30 +178,52 @@ class Player(pygame.sprite.Sprite):
                     if self.rect.y != (HEIGHT - ground_surf.get_height()):
                         self.jump_counter -= 1
     def checks(self):
-        # works out timing for jumps/shots/i-frames
+        # works out timing for jumps/shots/i-frames, and refreshes jumps upon landing
         if not self.can_shoot and current_time - self.last_shot >= self.shot_delay:
             self.can_shoot = True
         if not self.can_jump and current_time - self.last_jump >= self.jump_delay:
             self.can_jump = True
-        if self.rect.y >= (HEIGHT - 200):
-            # todo: jumping is kinda scuffed because of the shape of the player sprite / rect
-            self.jump_counter = 2
-            # this might need to be 1? idk jumping is weird now
         if self.is_invul and current_time - self.now_invul >= self.i_frames:
             self.is_invul = False
+        if pygame.Rect.colliderect(self.rect, ground_rect):
+            # landing refreshes jumps
+            self.jump_counter = 2
+        if self.has_powerup and current_time - self.powerup_pickup_time >= self.powerup_duration:
+            self.has_powerup = False
+            self.reset()
+            # removes powerup after set duration (powerup_duration)
+
     def frames(self):
         # for blinking (i-frames)
         if self.is_invul:
             blink_duration = 150
             if current_time - self.last_blink >= blink_duration:
-                self.current_frame = 2 if self.current_frame == 0 else 0
+                self.current_frame = 2 if self.current_frame == self.last_frame else self.last_frame
                 self.last_blink = current_time
         else:
-            self.current_frame = 0
+            self.current_frame = self.last_frame
 
     def refresh_jump(self):
+        # killing enemies refreshes jump
         if self.jump_counter == 0:
             self.jump_counter = 1
+
+    def powerup(self, powerup_type):
+        self.powerup_type = powerup_type
+        self.has_powerup = True
+        self.powerup_pickup_time = pygame.time.get_ticks()
+
+    def powerup_active(self):
+        if self.powerup_type == 'rapidfire':
+            self.current_frame = 1
+            self.last_frame = 1
+            self.shot_delay = 50
+
+    def reset(self):
+        self.player_max_speed = 20
+        self.current_frame = 0
+        self.last_frame = 0
+        self.shot_delay = 300
 
     def update(self):
         self.checks()
@@ -201,6 +231,8 @@ class Player(pygame.sprite.Sprite):
         self.apply_gravity()
         self.frames()
         out_of_bounds(self, 3)
+        if self.has_powerup is True:
+            self.powerup_active()
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, bullet_type):
@@ -225,10 +257,13 @@ class Bullet(pygame.sprite.Sprite):
             self.direction.rotate_ip(rotate_amount)
 
         self.direction.normalize_ip()
+        print(self.direction.x)
     def fly(self):
         # movement of bullet
         self.rect.x += self.direction.x * self.projectile_speed
         self.rect.y += self.direction.y * self.projectile_speed
+
+
     def update(self):
         # this method runs every tick
         self.out_of_bounds()
@@ -519,6 +554,40 @@ class Heart(pygame.sprite.Sprite):
                 self.image = self.heart_library[1]
             self.rect = self.image.get_rect(center=((WIDTH // 2) + 50, 125))
 
+class PowerUp(pygame.sprite.Sprite):
+    def __init__(self, powerup_type):
+        super().__init__()
+        self.powerup_type = powerup_type
+        if self.powerup_type == 'rapidfire':
+            self.speed = 5
+            self.visual = rapid_powerup_img
+            self.side = randint(1, 2)
+            if self.side == 1:
+                # right
+                self.starting_position = (WIDTH + 100, 250)
+            if self.side == 2:
+                self.starting_position = (-100, 250)
+        self.image = self.visual
+        self.rect = self.image.get_rect(center = self.starting_position)
+
+    def fly(self):
+        if self.side == 1:
+            # right
+            self.rect.x -= self.speed
+        if self.side == 2:
+            self.rect.x += self.speed
+    def collision(self):
+        if pygame.sprite.spritecollide(self, player, False):
+            player.sprite.powerup(self.powerup_type)
+            self.kill()
+        if out_of_bounds(self, 2):
+            self.kill()
+
+    def update(self):
+        self.collision()
+        self.fly()
+
+
 
 # INSTANTIATE STUFF
 # player
@@ -529,14 +598,19 @@ bullet = pygame.sprite.Group()
 flying_enemies = pygame.sprite.Group()
 # heart
 heart = pygame.sprite.Group()
+# shooting enemies
 shooting_enemies = pygame.sprite.Group()
 shooting_enemies_angled = pygame.sprite.Group()
 # bullet fired by enemies
 enemy_bullet = pygame.sprite.Group()
+# power ups
+power_ups = pygame.sprite.Group()
 
 
 for i in range(1, 4):
     heart.add(Heart(i))
+
+power_ups.add(PowerUp('rapidfire'))
 
 def player_take_damage():
     global game_active
@@ -549,6 +623,7 @@ def player_take_damage():
             player.sprite.now_invul = pygame.time.get_ticks()
             player.sprite.is_invul = True
             player.sprite.health -= 1
+            player.sprite.has_powerup = False
             update_hearts()
             game_active = True  # keep game going
 
@@ -570,26 +645,27 @@ def update_hearts():
     for i in range(1, 4):
         heart.add(Heart(i))
 
-def out_of_bounds(object_to_check, type):
+
+def out_of_bounds(object_to_check, out_of_bounds_type):
     # checks if given thing is out of bounds, simply call it with a (self)
     # fixme: weird bugginess with y coords
     # type 1 is more strict
     # type 2 has padding
     # type 3 doesn't return true/false, but rather forces object to stay in bounds (strictly)
     padding = 500
-    if type == 1:
+    if out_of_bounds_type == 1:
         if (object_to_check.rect.x < 0 or object_to_check.rect.x > WIDTH
                 or object_to_check.rect.y < 0 or object_to_check.rect.y > HEIGHT):
             return True
         else:
             return False
-    if type == 2:
+    if out_of_bounds_type == 2:
         if (object_to_check.rect.x < (-padding) or object_to_check.rect.x > (WIDTH + padding)
                 or object_to_check.rect.y < -padding or object_to_check.rect.y > (HEIGHT + padding)):
             return True
         else:
             return False
-    if type == 3:
+    if out_of_bounds_type == 3:
         if object_to_check.rect.x < 0:
             object_to_check.rect.x = 0
         if object_to_check.rect.x > WIDTH:
@@ -598,6 +674,19 @@ def out_of_bounds(object_to_check, type):
             object_to_check.rect.y = 0
         if object_to_check.rect.y > HEIGHT:
             object_to_check.rect.y = HEIGHT
+
+def get_powerup(powerup_type):
+    player.sprite.has_powerup = True
+    power_up_duration = 2000
+    time_at_pickup = pygame.time.get_ticks()
+    if powerup_type == 1:
+        if current_time - time_at_pickup <= power_up_duration:
+            player.sprite.current_frame = 1
+            player.sprite.last_frame = 1
+
+        else:
+            player.sprite.current_frame = 0
+            player.sprite.last_frame = 0
 
 
 while running:
@@ -624,9 +713,11 @@ while running:
                 # 1 = straight shooter, 2 is angled
                 if shooter_type == 1:
                     shooting_enemies.add(ShootingEnemy(randint(1, 2)))
+                    pass
                     # 1 or 2 determines side of spawning
                 if shooter_type == 2:
                     shooting_enemies_angled.add(ShootingEnemyAngled(randint(1, 2)))
+                    pass
         else:
             keys = pygame.key.get_pressed()
             if keys[pygame.K_ESCAPE]:
@@ -660,6 +751,9 @@ while running:
 
         enemy_bullet.draw(screen)
         enemy_bullet.update()
+
+        power_ups.draw(screen)
+        power_ups.update()
 
         heart.draw(screen)
     else:
