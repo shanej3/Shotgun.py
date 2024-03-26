@@ -49,24 +49,31 @@ heart_red = pygame.image.load('assets/img/heart1.png').convert_alpha()
 heart_red_empty = pygame.image.load('assets/img/heart1_fade.png').convert_alpha()
 rapid_powerup_img = pygame.image.load('assets/img/rapidfire_notext.png')
 rapid_powerup_img = pygame.transform.scale_by(rapid_powerup_img, 2.5)
-#bullet_img = pygame.image.load('assets/img/bullet1_enemy.png').convert_alpha()
 
-# timersa
+
+# timers
+mouse_timer = pygame.USEREVENT + 1
 pygame.time.set_timer(mouse_timer, 10)
 
 # Remember: These variables are also in reset()
 spawn_timer_flying = pygame.USEREVENT + 2
-pygame.time.set_timer(spawn_timer_flying, randint(250, 500))
+pygame.time.set_timer(spawn_timer_flying, randint(400, 500))
 
 spawn_timer_shooting = pygame.USEREVENT + 3
 pygame.time.set_timer(spawn_timer_shooting, randint(2000, 10000))
 #pygame.time.set_timer(spawn_timer_shooting, 500)
 
-blink_timer = pygame.USEREVENT + 4
+spawn_timer_powerups = pygame.USEREVENT + 4
+pygame.time.set_timer(spawn_timer_powerups, 20000)
+
+blink_timer = pygame.USEREVENT + 5
 pygame.time.set_timer(blink_timer, 100)
 
 # GUI
 main_font = pygame.font.Font('assets/GUI/HopeGold.ttf', 64)
+main_font_large = pygame.font.Font('assets/GUI/HopeGold.ttf', 128)
+rapidfire_text = main_font_large.render("RAPID FIRE!", True, (215, 215, 50))
+
 # hearts are created elsewhere
 # gameplay params
 score = 0
@@ -214,17 +221,21 @@ class Player(pygame.sprite.Sprite):
         self.powerup_pickup_time = pygame.time.get_ticks()
         self.powerup_type = powerup_type
         self.has_powerup = True
-        pygame.time.set_timer(spawn_timer_flying, 100)
-        #pygame.time.set_timer(spawn_timer_shooting, 1000)
-        score += 20
+        pygame.time.set_timer(spawn_timer_flying, randint(50, 200))
+        pygame.time.set_timer(spawn_timer_shooting, 7500)
+        score += 25
 
 
     def powerup_active(self):
-        # runs when powerup active, ends AUTOMATICALLY after powerup_duration
+        # runs every frame when powerup active, ends AUTOMATICALLY after powerup_duration
         if self.powerup_type == 'rapidfire':
             self.current_frame = 1
             self.last_frame = 1
             self.shot_delay = 50
+            screen.blit(rapidfire_text,(WIDTH // 2 - rapidfire_text.get_width() // 2, HEIGHT // 2 - 100))
+        if self.powerup_type == 'bounce':
+            pass
+
 
     def reset(self):
         self.player_max_speed = 20
@@ -619,7 +630,7 @@ power_ups = pygame.sprite.Group()
 for i in range(1, 4):
     heart.add(Heart(i))
 
-power_ups.add(PowerUp('rapidfire'))
+#power_ups.add(PowerUp('rapidfire'))
 
 def player_take_damage():
     global game_active
@@ -715,7 +726,8 @@ while running:
 
             if event.type == spawn_timer_flying:
                 # spawns enemies
-                flying_enemies.add(FlyingEnemy(randint(1, 3)))
+                flying_enemy_choices = [1, 1, 1, 2, 2, 2, 3]
+                flying_enemies.add(FlyingEnemy(choice(flying_enemy_choices)))
                 pass
             if event.type == spawn_timer_shooting:
                 shooter_type = randint(1,2)
@@ -729,6 +741,9 @@ while running:
                 if shooter_type == 2:
                     shooting_enemies_angled.add(ShootingEnemyAngled(choice(shooting_enemy_types)))
                     pass
+            if event.type == spawn_timer_powerups:
+                powerup_type_list = ['rapidfire']
+                power_ups.add(PowerUp(choice(powerup_type_list)))
         else:
             keys = pygame.key.get_pressed()
             if keys[pygame.K_ESCAPE]:
