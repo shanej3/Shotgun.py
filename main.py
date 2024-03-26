@@ -538,6 +538,7 @@ class EnemyBullet(pygame.sprite.Sprite):
         if self.angled == 1:
             if self.side == 1:
                 # right side
+                #if out_of_bounds(self, 1):
                 self.rect.x -= self.projectile_speed
                 self.rect.y -= 3
             if self.side == 2:
