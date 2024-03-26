@@ -47,8 +47,11 @@ tank_guy_angle_img4 = pygame.image.load('assets/img/tank_guy_angle4.png').conver
 tank_guy_angle_img4 = pygame.transform.scale_by(tank_guy_angle_img4, 4)
 heart_red = pygame.image.load('assets/img/heart1.png').convert_alpha()
 heart_red_empty = pygame.image.load('assets/img/heart1_fade.png').convert_alpha()
-rapid_powerup_img = pygame.image.load('assets/img/rapidfire_notext.png')
+rapid_powerup_img = pygame.image.load('assets/img/rapidfire_notext.png').convert_alpha()
 rapid_powerup_img = pygame.transform.scale_by(rapid_powerup_img, 2.5)
+bounce_powerup_img = pygame.image.load('assets/img/bounce_powerup_1.png').convert_alpha()
+bounce_powerup_img = pygame.transform.scale_by(bounce_powerup_img, 2.5)
+
 
 
 # timers
@@ -61,10 +64,9 @@ pygame.time.set_timer(spawn_timer_flying, randint(400, 500))
 
 spawn_timer_shooting = pygame.USEREVENT + 3
 pygame.time.set_timer(spawn_timer_shooting, randint(2000, 10000))
-#pygame.time.set_timer(spawn_timer_shooting, 500)
 
 spawn_timer_powerups = pygame.USEREVENT + 4
-pygame.time.set_timer(spawn_timer_powerups, 20000)
+pygame.time.set_timer(spawn_timer_powerups, 30000)
 
 blink_timer = pygame.USEREVENT + 5
 pygame.time.set_timer(blink_timer, 100)
@@ -116,7 +118,7 @@ class Player(pygame.sprite.Sprite):
         self.bullet_count = 5  # 5 default, make sure this is an odd number, huge number = cool explosion lol
         self.jump_height = 25
         self.multi_shot_counter = 0
-
+        self.bullet_bouncing = False
 
 
     def point(self):
@@ -161,19 +163,20 @@ class Player(pygame.sprite.Sprite):
         self.rect.y += self.gravity
         if self.rect.bottom >= (HEIGHT - 50):
             self.rect.bottom = HEIGHT - 50
-    def shoot(self, type):
+
+    def shoot(self, type, bullet_bouncing):
         if self.can_shoot:
             self.multi_shot_counter = 0
             # create bullets, 5 for shotgun
             # todo: huge numbers make explosion lol
             if type == 1:
                 for i in range(1, (self.bullet_count + 1)):
-                    bullet.add(Bullet(i))
+                    bullet.add(Bullet(i, bullet_bouncing))
                     self.last_shot = pygame.time.get_ticks()
             if type == 2:
                 # doubles amount of bullets
                 for i in range(1, ((self.bullet_count * 2) + 1)):
-                    bullet.add(Bullet(i))
+                    bullet.add(Bullet(i, bullet_bouncing))
                     self.last_shot = pygame.time.get_ticks() + 750  # longer delay
             self.can_shoot = False
     def jump(self):
@@ -221,8 +224,11 @@ class Player(pygame.sprite.Sprite):
         self.powerup_pickup_time = pygame.time.get_ticks()
         self.powerup_type = powerup_type
         self.has_powerup = True
-        pygame.time.set_timer(spawn_timer_flying, randint(50, 200))
-        pygame.time.set_timer(spawn_timer_shooting, 7500)
+        if self.powerup_type == 'rapidfire':
+            pygame.time.set_timer(spawn_timer_flying, randint(50, 200))
+            pygame.time.set_timer(spawn_timer_shooting, 7500)
+        if self.powerup_type == 'bounce':
+            self.bullet_bouncing = True
         score += 25
 
 
@@ -234,7 +240,7 @@ class Player(pygame.sprite.Sprite):
             self.shot_delay = 50
             screen.blit(rapidfire_text,(WIDTH // 2 - rapidfire_text.get_width() // 2, HEIGHT // 2 - 100))
         if self.powerup_type == 'bounce':
-            pass
+            print('BOUNCING')
 
 
     def reset(self):
@@ -244,6 +250,7 @@ class Player(pygame.sprite.Sprite):
         self.shot_delay = 300
         pygame.time.set_timer(spawn_timer_flying, randint(400, 500))
         pygame.time.set_timer(spawn_timer_shooting, randint(2000, 10000))
+        self.bullet_bouncing = False
 
     def update(self):
         self.player_input()
@@ -255,7 +262,7 @@ class Player(pygame.sprite.Sprite):
         self.checks()
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, bullet_type):
+    def __init__(self, bullet_type, is_bouncing):
         super().__init__()
         self.bullet_type = bullet_type
         self.image = pygame.transform.scale_by(player_bullet_img, 0.5)
@@ -265,6 +272,9 @@ class Bullet(pygame.sprite.Sprite):
         self.projectile_speed = 30  # 30 is default
         self.direction = pygame.math.Vector2(mouse_pos) - self.rect.center
         self.bullet_spread = 4  # 4 is default
+        self.is_bouncing = is_bouncing
+        self.bounce_count = 0
+        self.max_bounce_count = 10
 
         if bullet_type == 1:  # flies straight
             self.direction = mouse_pos - self.rect.center
@@ -277,9 +287,19 @@ class Bullet(pygame.sprite.Sprite):
             self.direction.rotate_ip(rotate_amount)
 
         self.direction.normalize_ip()
-        print(self.direction.x)
+        #print(self.direction.x)
     def fly(self):
         # movement of bullet
+        if self.is_bouncing:
+            if out_of_bounds(self, 'x'):
+                self.bounce_count += 1
+                self.direction.x *= -1
+                #if self.rect.y == 0 or HEIGHT:
+                    #print(self.rect.y)
+                    #self.direction.y *= -1
+            if out_of_bounds(self, 'y'):
+                self.bounce_count += 1
+                self.direction.y *= -1
         self.rect.x += self.direction.x * self.projectile_speed
         self.rect.y += self.direction.y * self.projectile_speed
 
@@ -288,12 +308,17 @@ class Bullet(pygame.sprite.Sprite):
         # this method runs every tick
         self.out_of_bounds()
         self.fly()
+        self.destroy()
     def out_of_bounds(self):
         # destroy bullet if out of bounds
-        if out_of_bounds(self, 1):
+        if out_of_bounds(self, 2):
             self.kill()
+
     def destroy(self):
-        self.kill()
+        if self.bounce_count > self.max_bounce_count:
+            self.kill()
+            print('DEAD')
+
 
 
 class FlyingEnemy(pygame.sprite.Sprite):
@@ -320,8 +345,9 @@ class FlyingEnemy(pygame.sprite.Sprite):
 
     def destroy(self):
         global score
-        if pygame.sprite.spritecollide(self, bullet, True):
+        if not out_of_bounds(self, 1) and pygame.sprite.spritecollide(self, bullet, True):
             self.kill()
+            print('FLYING ENEMY DEAD')
             score += 1
             player.sprite.refresh_jump()
             multi_shot()
@@ -372,10 +398,9 @@ class ShootingEnemy(pygame.sprite.Sprite):
             self.image = self.library_flipped[self.current_frame]
             self.rect = self.image.get_rect(midbottom=(-100, HEIGHT - (HEIGHT / 18)))
 
-
     def destroy(self):
         global score
-        if pygame.sprite.spritecollide(self, bullet, True):
+        if not out_of_bounds(self, 1) and pygame.sprite.spritecollide(self, bullet, True):
             # this is when PLAYER bullet collides with enemy
             self.kill()
             score += 2
@@ -441,7 +466,6 @@ class ShootingEnemyAngled(pygame.sprite.Sprite):
         self.last_shot = 0
         self.shot_delay = 175
         self.alive = True
-        # this divisor, used later, is for calculating self.rect.y movement
         self.side = side
         if self.side == 1:
             # right side of screen
@@ -455,7 +479,7 @@ class ShootingEnemyAngled(pygame.sprite.Sprite):
 
     def destroy(self):
         global score
-        if pygame.sprite.spritecollide(self, bullet, True):
+        if not out_of_bounds(self, 1) and pygame.sprite.spritecollide(self, bullet, True):
             # this is when PLAYER bullet collides with enemy
             self.kill()
             score += 2
@@ -512,6 +536,7 @@ class EnemyBullet(pygame.sprite.Sprite):
         self.side = side
         self.angled = shot_angle
         # 1 will be straight shooter, 2 will be angled
+        self.y_movement = 3
 
     def update(self):
         # flight
@@ -538,7 +563,6 @@ class EnemyBullet(pygame.sprite.Sprite):
         if self.angled == 1:
             if self.side == 1:
                 # right side
-                #if out_of_bounds(self, 1):
                 self.rect.x -= self.projectile_speed
                 self.rect.y -= 3
             if self.side == 2:
@@ -579,15 +603,18 @@ class PowerUp(pygame.sprite.Sprite):
     def __init__(self, powerup_type):
         super().__init__()
         self.powerup_type = powerup_type
+        self.side = randint(1, 2)
         if self.powerup_type == 'rapidfire':
             self.speed = 5
             self.visual = rapid_powerup_img
-            self.side = randint(1, 2)
-            if self.side == 1:
-                # right
-                self.starting_position = (WIDTH + 100, 250)
-            if self.side == 2:
-                self.starting_position = (-100, 250)
+        if self.powerup_type == 'bounce':
+            self.speed = 5
+            self.visual = bounce_powerup_img
+        if self.side == 1:
+            # right
+            self.starting_position = (WIDTH + 100, 350)
+        if self.side == 2:
+            self.starting_position = (-100, 250)
         self.image = self.visual
         self.rect = self.image.get_rect(center = self.starting_position)
 
@@ -673,6 +700,8 @@ def out_of_bounds(object_to_check, out_of_bounds_type):
     # type 1 is more strict
     # type 2 has padding
     # type 3 doesn't return true/false, but rather forces object to stay in bounds (strictly)
+    # type 'x' checks only x
+    # type 'y' checks only y
     padding = 500
     if out_of_bounds_type == 1:
         if (object_to_check.rect.x < 0 or object_to_check.rect.x > WIDTH
@@ -695,6 +724,17 @@ def out_of_bounds(object_to_check, out_of_bounds_type):
             object_to_check.rect.y = 0
         if object_to_check.rect.y > HEIGHT:
             object_to_check.rect.y = HEIGHT
+    if out_of_bounds_type == 'x':
+        if object_to_check.rect.x < 0 or object_to_check.rect.x > WIDTH:
+            return True
+        else:
+            return False
+    if out_of_bounds_type == 'y':
+        if object_to_check.rect.y < 0 or object_to_check.rect.y > HEIGHT:
+            return True
+        else:
+            return False
+
 
 def get_powerup(powerup_type):
     player.sprite.has_powerup = True
@@ -721,7 +761,7 @@ while running:
                 player.sprite.point()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    player.sprite.shoot(1)
+                    player.sprite.shoot(1, player.sprite.bullet_bouncing)
                 if event.button == 3:
                     player.sprite.shoot(2)
 
@@ -743,7 +783,7 @@ while running:
                     shooting_enemies_angled.add(ShootingEnemyAngled(choice(shooting_enemy_types)))
                     pass
             if event.type == spawn_timer_powerups:
-                powerup_type_list = ['rapidfire']
+                powerup_type_list = ['rapidfire', 'bounce']
                 power_ups.add(PowerUp(choice(powerup_type_list)))
         else:
             keys = pygame.key.get_pressed()
