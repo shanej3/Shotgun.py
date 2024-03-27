@@ -28,6 +28,7 @@ enemy_bullet_img = pygame.image.load('assets/img/enemy_bullet_circle1.png').conv
 shotgun_img = pygame.image.load('assets/img/shotgun_right.png').convert_alpha()
 shotgun_img_yellow = pygame.image.load('assets/img/shotgun_yellow.png').convert_alpha()
 shotgun_img_red = pygame.image.load('assets/img/shotgun_red.png').convert_alpha()
+shotgun_img_purple = pygame.image.load('assets/img/shotgun_purple.png').convert_alpha()
 mob_1_img = pygame.image.load('assets/img/drone_ball.png').convert_alpha()
 tank_guy_img1 = pygame.image.load('assets/img/tank_guy_red1.png').convert_alpha()
 tank_guy_img1 = pygame.transform.scale_by(tank_guy_img1, 4)
@@ -52,18 +53,17 @@ rapid_powerup_img = pygame.transform.scale_by(rapid_powerup_img, 2.5)
 bounce_powerup_img = pygame.image.load('assets/img/bounce_powerup_1.png').convert_alpha()
 bounce_powerup_img = pygame.transform.scale_by(bounce_powerup_img, 2.5)
 
-
-
 # timers
 mouse_timer = pygame.USEREVENT + 1
 pygame.time.set_timer(mouse_timer, 10)
 
 # Remember: These variables are also in reset()
 spawn_timer_flying = pygame.USEREVENT + 2
-pygame.time.set_timer(spawn_timer_flying, randint(400, 500))
+pygame.time.set_timer(spawn_timer_flying, randint(250, 500))
+# original value: 400, 500
 
 spawn_timer_shooting = pygame.USEREVENT + 3
-pygame.time.set_timer(spawn_timer_shooting, randint(2000, 10000))
+pygame.time.set_timer(spawn_timer_shooting, randint(4000, 10000))
 
 spawn_timer_powerups = pygame.USEREVENT + 4
 pygame.time.set_timer(spawn_timer_powerups, 30000)
@@ -75,7 +75,7 @@ pygame.time.set_timer(blink_timer, 100)
 main_font = pygame.font.Font('assets/GUI/HopeGold.ttf', 64)
 main_font_large = pygame.font.Font('assets/GUI/HopeGold.ttf', 128)
 rapidfire_text = main_font_large.render("RAPID FIRE!", True, (215, 215, 50))
-
+bounce_text = main_font_large.render("BOUNCE!", True, (186,85,211))
 # hearts are created elsewhere
 # gameplay params
 score = 0
@@ -83,7 +83,7 @@ class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         # Render
-        self.shotgun_library = [shotgun_img, shotgun_img_yellow, shotgun_img_red]
+        self.shotgun_library = [shotgun_img, shotgun_img_yellow, shotgun_img_red, shotgun_img_purple]
         self.current_frame = 0  # defaults to shotgun_img (index 0 of shotgun_library)
         self.last_frame = 0
         self.current_shotgun_img = pygame.transform.scale_by(self.shotgun_library[self.current_frame], 3)
@@ -225,10 +225,11 @@ class Player(pygame.sprite.Sprite):
         self.powerup_type = powerup_type
         self.has_powerup = True
         if self.powerup_type == 'rapidfire':
-            pygame.time.set_timer(spawn_timer_flying, randint(50, 200))
+            pygame.time.set_timer(spawn_timer_flying, randint(40, 200))
             pygame.time.set_timer(spawn_timer_shooting, 7500)
         if self.powerup_type == 'bounce':
             self.bullet_bouncing = True
+            pygame.time.set_timer(spawn_timer_flying, randint(100, 300))
         score += 25
 
 
@@ -241,6 +242,9 @@ class Player(pygame.sprite.Sprite):
             screen.blit(rapidfire_text,(WIDTH // 2 - rapidfire_text.get_width() // 2, HEIGHT // 2 - 100))
         if self.powerup_type == 'bounce':
             print('BOUNCING')
+            self.current_frame = 3
+            self.last_frame = 3
+            screen.blit(bounce_text,(WIDTH // 2 - bounce_text.get_width() // 2, HEIGHT // 2 - 100))
 
 
     def reset(self):
@@ -763,7 +767,7 @@ while running:
                 if event.button == 1:
                     player.sprite.shoot(1, player.sprite.bullet_bouncing)
                 if event.button == 3:
-                    player.sprite.shoot(2)
+                    player.sprite.shoot(2, player.sprite.bullet_bouncing)
 
             if event.type == spawn_timer_flying:
                 # spawns enemies
@@ -835,6 +839,8 @@ while running:
         flying_enemies.empty()
         shooting_enemies.empty()
         enemy_bullet.empty()
+        power_ups.empty()
+        player.sprite.reset()
         # empty everything to really ensure there's no memory leaks
         screen.fill('darkorchid4')
         score_text = main_font.render("SCORE : " + str(score), True, (200, 200, 200))
