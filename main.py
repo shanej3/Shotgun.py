@@ -7,6 +7,7 @@ from random import randint, choice, random
 # todo: fix inconsistent/not precise values (eventually), such as height of floor calculations for jumping
 # todo: (eventually), the shotgun's sprite's weird shape causes collision issues, namely with the boundaries of the window
 # todo: powerups: ideas in ignore.txt
+# FIXME: powerups dont end sometimes
 pygame.init()
 WIDTH = 1920
 HEIGHT = 1080
@@ -15,6 +16,7 @@ clock = pygame.time.Clock()
 running = True
 mouse_pos = (0, 0)
 game_active = True
+enemy_active = True
 # Load images
 background = pygame.image.load('assets/img/city_night_1.png').convert_alpha()
 #background = pygame.image.load('assets/img/weird_dungon.png').convert_alpha()
@@ -66,7 +68,7 @@ spawn_timer_shooting = pygame.USEREVENT + 3
 pygame.time.set_timer(spawn_timer_shooting, randint(4000, 10000))
 
 spawn_timer_powerups = pygame.USEREVENT + 4
-pygame.time.set_timer(spawn_timer_powerups, 30000)
+pygame.time.set_timer(spawn_timer_powerups, 20000)
 
 blink_timer = pygame.USEREVENT + 5
 pygame.time.set_timer(blink_timer, 100)
@@ -241,7 +243,6 @@ class Player(pygame.sprite.Sprite):
             self.shot_delay = 50
             screen.blit(rapidfire_text,(WIDTH // 2 - rapidfire_text.get_width() // 2, HEIGHT // 2 - 100))
         if self.powerup_type == 'bounce':
-            print('BOUNCING')
             self.current_frame = 3
             self.last_frame = 3
             screen.blit(bounce_text,(WIDTH // 2 - bounce_text.get_width() // 2, HEIGHT // 2 - 100))
@@ -274,9 +275,10 @@ class Bullet(pygame.sprite.Sprite):
         projectile_pos = pygame.math.Vector2(player.sprite.rect.centerx, player.sprite.rect.centery)
         self.rect = self.image.get_rect(center=projectile_pos)
         self.projectile_speed = 30  # 30 is default
-        self.direction = pygame.math.Vector2(mouse_pos) - self.rect.center
+        self.direction = mouse_pos - self.rect.center
+        # subtracting gives a vector that points from shotgun center to mouse pointer
         self.bullet_spread = 4  # 4 is default
-        self.is_bouncing = is_bouncing
+        self.is_bouncing = is_bouncing  # for bounce powerup
         self.bounce_count = 0
         self.max_bounce_count = 10
 
@@ -289,9 +291,7 @@ class Bullet(pygame.sprite.Sprite):
             else:
                 rotate_amount = (-((bullet_type - 1) / 2) * self.bullet_spread)
             self.direction.rotate_ip(rotate_amount)
-
         self.direction.normalize_ip()
-        #print(self.direction.x)
     def fly(self):
         # movement of bullet
         if self.is_bouncing:
@@ -299,13 +299,13 @@ class Bullet(pygame.sprite.Sprite):
                 self.bounce_count += 1
                 self.direction.x *= -1
                 #if self.rect.y == 0 or HEIGHT:
-                    #print(self.rect.y)
                     #self.direction.y *= -1
             if out_of_bounds(self, 'y'):
                 self.bounce_count += 1
                 self.direction.y *= -1
         self.rect.x += self.direction.x * self.projectile_speed
         self.rect.y += self.direction.y * self.projectile_speed
+
 
 
     def update(self):
@@ -321,7 +321,6 @@ class Bullet(pygame.sprite.Sprite):
     def destroy(self):
         if self.bounce_count > self.max_bounce_count:
             self.kill()
-            print('DEAD')
 
 
 
@@ -351,7 +350,6 @@ class FlyingEnemy(pygame.sprite.Sprite):
         global score
         if not out_of_bounds(self, 1) and pygame.sprite.spritecollide(self, bullet, True):
             self.kill()
-            print('FLYING ENEMY DEAD')
             score += 1
             player.sprite.refresh_jump()
             multi_shot()
@@ -364,7 +362,6 @@ class FlyingEnemy(pygame.sprite.Sprite):
         enemy_pos = pygame.math.Vector2(self.rect.center)
         direction = player_pos - enemy_pos
         self.angle = math.atan2(player_pos[1] - self.rect.centery, player_pos[0] - self.rect.centerx)
-        # global angle_degrees
         self.angle_degrees = math.degrees(self.angle)
         self.image = pygame.transform.rotate(self.flipped_img, -self.angle_degrees)
         if direction.length() != 0:
@@ -616,9 +613,9 @@ class PowerUp(pygame.sprite.Sprite):
             self.visual = bounce_powerup_img
         if self.side == 1:
             # right
-            self.starting_position = (WIDTH + 100, 350)
+            self.starting_position = (WIDTH + 100, 600)  # 250
         if self.side == 2:
-            self.starting_position = (-100, 250)
+            self.starting_position = (-100, 600)
         self.image = self.visual
         self.rect = self.image.get_rect(center = self.starting_position)
 
@@ -769,12 +766,12 @@ while running:
                 if event.button == 3:
                     player.sprite.shoot(2, player.sprite.bullet_bouncing)
 
-            if event.type == spawn_timer_flying:
+            if event.type == spawn_timer_flying and enemy_active:
                 # spawns enemies
                 flying_enemy_choices = [1, 1, 1, 2, 2, 2, 3]
                 flying_enemies.add(FlyingEnemy(choice(flying_enemy_choices)))
                 pass
-            if event.type == spawn_timer_shooting:
+            if event.type == spawn_timer_shooting and enemy_active:
                 shooter_type = randint(1,2)
                 shooting_enemy_types = (1, 1, 1, 2)
                 # ^ this is for the random.choice method
@@ -791,11 +788,14 @@ while running:
                 power_ups.add(PowerUp(choice(powerup_type_list)))
         else:
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_ESCAPE]:
+            if keys[pygame.K_RETURN]:
                 # reset the game
                 game_active = True
                 score = 0
                 player.sprite.health = 3
+                update_hearts()
+            if keys[pygame.K_ESCAPE]:
+                pygame.quit()
 
     if game_active:
         # Main game
@@ -844,7 +844,14 @@ while running:
         # empty everything to really ensure there's no memory leaks
         screen.fill('darkorchid4')
         score_text = main_font.render("SCORE : " + str(score), True, (200, 200, 200))
-        screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, HEIGHT // 2 - score_text.get_height() // 2))
+        score_x = WIDTH // 2 - score_text.get_width() // 2
+        score_y = HEIGHT // 2 - score_text.get_height() // 2
+        screen.blit(score_text, (score_x, score_y))
+
+        restart_text = main_font.render("Press ENTER/RETURN to Restart, ESC to Quit", True, (200, 200, 200))
+        restart_x = WIDTH // 2 - restart_text.get_width() // 2
+        restart_y = score_y + score_text.get_height() + 10  # 10 pixels below the score
+        screen.blit(restart_text, (restart_x, restart_y))
 
 
     # Update display
