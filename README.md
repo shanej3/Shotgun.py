@@ -18,3 +18,10 @@ You gain score by killing enemies (1 point per flying enemey, 2 points per shoot
 
 You are given 1 mid-air jump that resets anytime you kill an enemy 
 
+## Setup:
+
+Ensure you have [Python]([url](www.python.org/downloads/)) installed.
+
+Download pygame-ce with `pip install pygame-ce`.
+
+Run the game! 
