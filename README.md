@@ -6,7 +6,7 @@ WASD for movement
 
 Left/Right click for Fire/Special fire
 
-ESCAPE for starting the game (from score screen)
+ENTER/RETURN for starting the game (from score screen)
 
 
 ## Rules:
