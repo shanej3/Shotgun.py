@@ -6,7 +6,7 @@ WASD for movement
 
 Left/Right click for Fire/Special fire
 
-ESCAPE for starting the game (from score screen)
+ENTER/RETURN for starting the game (from score screen)
 
 
 ## Rules:
@@ -20,7 +20,7 @@ You are given 1 mid-air jump that resets anytime you kill an enemy
 
 ## Setup:
 
-Ensure you have [Python]([url](www.python.org/downloads/)) installed.
+Ensure you have [Python]([url](https://www.python.org/downloads/)) installed.
 
 Download pygame-ce with `pip install pygame-ce`.
 
