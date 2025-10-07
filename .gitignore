@@ -1,1 +1,8 @@
 /ignore.txt
+
+# todo: out of bounds (player)
+# todo: new enemies
+# todo: fix inconsistent/not precise values (eventually), such as height of floor calculations for jumping
+# todo: (eventually), the shotgun's sprite's weird shape causes collision issues, namely with the boundaries of the window
+# todo: powerups: ideas in ignore.txt
+# FIXME: powerups dont end sometimes

@@ -1,13 +1,8 @@
 import pygame
 import math
 from random import randint, choice, random
+from assets import load_assets
 
-# todo: out of bounds (player)
-# todo: new enemies
-# todo: fix inconsistent/not precise values (eventually), such as height of floor calculations for jumping
-# todo: (eventually), the shotgun's sprite's weird shape causes collision issues, namely with the boundaries of the window
-# todo: powerups: ideas in ignore.txt
-# FIXME: powerups dont end sometimes
 pygame.init()
 WIDTH = 1920
 HEIGHT = 1080
@@ -17,43 +12,10 @@ running = True
 mouse_pos = (0, 0)
 game_active = True
 enemy_active = True
+
 # Load images
-background = pygame.image.load('assets/img/city_night_1.png').convert_alpha()
-#background = pygame.image.load('assets/img/weird_dungon.png').convert_alpha()
-background_surf = pygame.transform.scale(background, (WIDTH, HEIGHT))
-background_rect = background_surf.get_rect()
-ground = pygame.image.load('assets/img/ground-shane-1-wide.png')
-ground_surf = pygame.transform.scale_by(ground, 4)
-ground_rect = ground_surf.get_rect(midbottom=(WIDTH // 2, HEIGHT))
-player_bullet_img = pygame.image.load('assets/img/bullet2.png').convert_alpha()
-enemy_bullet_img = pygame.image.load('assets/img/enemy_bullet_circle1.png').convert_alpha()
-shotgun_img = pygame.image.load('assets/img/shotgun_right.png').convert_alpha()
-shotgun_img_yellow = pygame.image.load('assets/img/shotgun_yellow.png').convert_alpha()
-shotgun_img_red = pygame.image.load('assets/img/shotgun_red.png').convert_alpha()
-shotgun_img_purple = pygame.image.load('assets/img/shotgun_purple.png').convert_alpha()
-mob_1_img = pygame.image.load('assets/img/drone_ball.png').convert_alpha()
-tank_guy_img1 = pygame.image.load('assets/img/tank_guy_red1.png').convert_alpha()
-tank_guy_img1 = pygame.transform.scale_by(tank_guy_img1, 4)
-tank_guy_img2 = pygame.image.load('assets/img/tank_guy_red2.png').convert_alpha()
-tank_guy_img2 = pygame.transform.scale_by(tank_guy_img2, 4)
-tank_guy_img3 = pygame.image.load('assets/img/tank_guy_red3.png').convert_alpha()
-tank_guy_img3 = pygame.transform.scale_by(tank_guy_img3, 4)
-tank_guy_img4 = pygame.image.load('assets/img/tank_guy_red4.png').convert_alpha()
-tank_guy_img4 = pygame.transform.scale_by(tank_guy_img4, 4)
-tank_guy_angle_img1 = pygame.image.load('assets/img/tank_guy_angle1.png').convert_alpha()
-tank_guy_angle_img1 = pygame.transform.scale_by(tank_guy_angle_img1, 4)
-tank_guy_angle_img2 = pygame.image.load('assets/img/tank_guy_angle2.png').convert_alpha()
-tank_guy_angle_img2 = pygame.transform.scale_by(tank_guy_angle_img2, 4)
-tank_guy_angle_img3 = pygame.image.load('assets/img/tank_guy_angle3.png').convert_alpha()
-tank_guy_angle_img3 = pygame.transform.scale_by(tank_guy_angle_img3, 4)
-tank_guy_angle_img4 = pygame.image.load('assets/img/tank_guy_angle4.png').convert_alpha()
-tank_guy_angle_img4 = pygame.transform.scale_by(tank_guy_angle_img4, 4)
-heart_red = pygame.image.load('assets/img/heart1.png').convert_alpha()
-heart_red_empty = pygame.image.load('assets/img/heart1_fade.png').convert_alpha()
-rapid_powerup_img = pygame.image.load('assets/img/rapidfire_notext.png').convert_alpha()
-rapid_powerup_img = pygame.transform.scale_by(rapid_powerup_img, 2.5)
-bounce_powerup_img = pygame.image.load('assets/img/bounce_powerup_1.png').convert_alpha()
-bounce_powerup_img = pygame.transform.scale_by(bounce_powerup_img, 2.5)
+game_assets = load_assets(WIDTH, HEIGHT)
+locals().update(game_assets) # To access variables directly
 
 # timers
 mouse_timer = pygame.USEREVENT + 1
